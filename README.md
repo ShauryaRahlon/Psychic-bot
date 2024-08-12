@@ -37,7 +37,7 @@ npm install: This command will install the necessary dependencies (axios and rea
 This command will install the necessary dependencies (axios and react-markdown) required for the project to function.
 
 ```
-
+### website link : https://jimmysai.netlify.app/
 Usage:
 
 Type your question:
@@ -58,3 +58,5 @@ Consider adding error handling or user feedback mechanisms to enhance the user e
 ## Screenshot of the website
 
 ![alt text](image-3.png)
+
+This project is still in completion
