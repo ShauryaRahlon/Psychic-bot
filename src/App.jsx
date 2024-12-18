@@ -1,101 +1,94 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+
 import './App.css';
-import axios from 'axios';
-import ReactMarkdown from 'react-markdown';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// const api_key = import.meta.env.VITE_GROQ_API_KEY;
 
 function App() {
-  const [oldQuestions, setOldQuestions] = useState(() => {
-    const savedQuestions = localStorage.getItem("oldQuestions");
-    return savedQuestions ? JSON.parse(savedQuestions) : [];
-  });
+  const [query, setQuery] = useState('');
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  const handleSearch = async () => {
+    if (!query.trim()) return;
 
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [loadingText, setLoadingText] = useState("");
+    setLoading(true);
+    setError(null);
+    setResult(null);
 
-  useEffect(() => {
-    localStorage.setItem("oldQuestions", JSON.stringify(oldQuestions));
-  }, [oldQuestions]);
+    try {
+      // Initialize Google Generative AI
+      const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GOOGLE_API_KEY); // Use environment variable for API key
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-  useEffect(() => {
-    let interval;
-    if (answer === "loading") {
-      setLoadingText("Generating");
-      interval = setInterval(() => {
-        setLoadingText((prev) => (prev.length < 13 ? prev + "." : "Generating"));
-      }, 500);
+      // Generate AI content
+      const aiResponse = await model.generateContent(query);
+
+      // Set the AI response to result
+      setResult(aiResponse.response.text());
+    } catch (err) {
+      setError('An error occurred while generating AI content.');
+    } finally {
+      setLoading(false);
     }
-    return () => clearInterval(interval);
-  }, [answer]);
-  const api = your_api_key;
-  async function generateAnswer() {
-    setAnswer("loading");
-    const response = await axios({
-      url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${your_api_key}`,
-      method: "post",
-      data: { contents: [{ parts: [{ text: question }] }] }
-    });
-    setAnswer(response.data.candidates[0].content.parts[0].text);
-
-    // Update the oldQuestions array
-    setOldQuestions(prevQuestions => {
-      const updatedQuestions = [...prevQuestions, question];
-
-      return updatedQuestions;
-    });
-
-    setQuestion("");
-  }
-
-  const handleChange = (e) => {
-    setQuestion(e.target.value);
   };
 
-  const title = "Get answers";
-
-
-  function deleteTask(index) {
-    const updatedOldQuestion = oldQuestions.filter((_, i) => i !== index)
-    setOldQuestions(updatedOldQuestion);
-  }
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   return (
-    <>
-      <div className="main">
-        <div className="prevQ" style={{ borderRight: '5px solid wheat' }}>
+    <div className="app">
+      <div className="container">
+        <h1 className="title">AI Search Assistant</h1>
 
-          <div className="uppertext">
-
-            <p style={{ fontFamily: "Comic sans ms" }}>previous searches</p>
+        <div className="search-section">
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="What would you like to know?"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyPress={handleKeyPress}
+              className="search-input"
+            />
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className={`search-button ${loading ? 'loading' : ''}`}
+            >
+              {loading ? (
+                <span className="loader"></span>
+              ) : (
+                <span>Search</span>
+              )}
+            </button>
           </div>
 
-          <ol>
-            {oldQuestions.map((task, index) => (
-              <li key={index} onDoubleClick={() => deleteTask(index)} onClick={() => setQuestion(task)} >{task}</li>
-            ))}
-          </ol>
+          {error && (
+            <div className="error-message">
+              <span className="error-icon">⚠️</span>
+              {error}
+            </div>
+          )}
         </div>
-        <div className={`container ${answer ? 'shift-up' : ''}`}>
-          <h1>
-            {title.split("").map((letra, index) => (
-              <span key={index} className="letra">{letra}</span>
-            ))}
-          </h1>
-          <textarea value={question} onChange={handleChange}></textarea>
-          <button onClick={generateAnswer}>generate</button>
-          <div className="markdown-content">
-            <ReactMarkdown>
-              {answer === "loading" ? loadingText : answer}
-            </ReactMarkdown>
+
+        {result && (
+          <div className="results-section">
+            <h2 className="results-title">Results</h2>
+            <div className="results-container">
+              <pre className="json-result">{result}</pre>
+            </div>
           </div>
-
-        </div >
-
-      </div >
-      <footer>created with anger by &copy; shaurya </footer>
-    </>
+        )}
+      </div>
+    </div>
   );
 }
 
 export default App;
+
